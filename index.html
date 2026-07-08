@@ -1,0 +1,226 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="For Ruheena Syed, an incredible mother, wife, and the heart of our family." />
+  <meta name="theme-color" content="#fdf9f4" />
+  <meta property="og:title" content="Happy Birthday, Ruheena Syed" />
+  <meta property="og:description" content="Celebrating an incredible mother, wife, and the heart of our family." />
+  <meta property="og:type" content="website" />
+  <title>Happy Birthday, Ruheena Syed ♡</title>
+
+  <!-- Fonts: elegant serif for headlines, modern sans for body -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤍</text></svg>" />
+
+  <!-- Three.js is vendored locally so the globe works fully offline -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js"
+    }
+  }
+  </script>
+</head>
+<body>
+
+  <!-- ══════════════════════ Preloader ══════════════════════ -->
+  <div class="preloader" id="preloader" aria-hidden="true">
+    <div class="preloader__heart">♡</div>
+    <p class="preloader__text">For the heart of our family</p>
+  </div>
+
+  <!-- Scroll progress indicator -->
+  <div class="scroll-progress" id="scrollProgress" role="progressbar" aria-label="Page scroll progress"></div>
+
+  <!-- Ambient cursor glow (decorative, desktop only) -->
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+  <!-- Celebration canvas: confetti, sparkles, hearts -->
+  <canvas id="celebrationCanvas" class="celebration-canvas" aria-hidden="true"></canvas>
+
+  <!-- ══════════════════════ Hero ══════════════════════ -->
+  <header class="hero" id="hero">
+    <div class="hero__gradient" aria-hidden="true"></div>
+    <canvas id="heroParticles" class="hero__particles" aria-hidden="true"></canvas>
+
+    <div class="hero__content">
+      <p class="hero__eyebrow reveal-on-load" style="--d:.2s" id="heroEyebrow">For the heart of our family</p>
+      <h1 class="hero__title">
+        <span class="hero__line reveal-on-load" style="--d:.45s" id="heroGreeting">For My Mom</span>
+        <span class="hero__line hero__line--name reveal-on-load" style="--d:.75s">Ruheena&nbsp;Syed</span>
+      </h1>
+      <div class="hero__rule reveal-on-load" style="--d:1.05s" aria-hidden="true"></div>
+      <p class="hero__subtitle reveal-on-load" style="--d:1.2s">
+        Celebrating an incredible mother, wife, and the heart of our family.
+      </p>
+    </div>
+
+    <a href="#countdown" class="hero__scroll reveal-on-load magnetic" style="--d:1.8s" aria-label="Scroll to begin">
+      <span class="hero__scroll-text">Scroll to Begin</span>
+      <span class="hero__scroll-line" aria-hidden="true"></span>
+    </a>
+  </header>
+
+  <main id="main">
+
+    <!-- ══════════════ A Life, Counted in Love (live count-up) ══════════════ -->
+    <section class="countdown section" id="countdown" aria-labelledby="countdown-title">
+      <p class="section__eyebrow reveal">Since June 25, 1985</p>
+      <h2 class="section__title reveal" id="countdown-title">Memorial</h2>
+      <p class="section__lede reveal">Every single second of it a gift to the people who love her.</p>
+      <div class="countdown__grid" role="timer" aria-live="off">
+        <div class="countdown__card glass reveal" style="--d:.05s">
+          <span class="countdown__value" id="cuYears">0</span>
+          <span class="countdown__label">Years</span>
+        </div>
+        <div class="countdown__card glass reveal" style="--d:.13s">
+          <span class="countdown__value" id="cuDays">0</span>
+          <span class="countdown__label">Days</span>
+        </div>
+        <div class="countdown__card glass reveal" style="--d:.21s">
+          <span class="countdown__value" id="cuHours">0</span>
+          <span class="countdown__label">Hours</span>
+        </div>
+        <div class="countdown__card glass reveal" style="--d:.29s">
+          <span class="countdown__value" id="cuMinutes">0</span>
+          <span class="countdown__label">Minutes</span>
+        </div>
+        <div class="countdown__card glass reveal" style="--d:.37s">
+          <span class="countdown__value" id="cuSeconds">0</span>
+          <span class="countdown__label">Seconds</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════ Statistics ══════════════════════ -->
+    <section class="stats section" aria-labelledby="stats-title">
+      <p class="section__eyebrow reveal">A life in numbers</p>
+      <h2 class="section__title reveal" id="stats-title">Every Moment&nbsp;Counts</h2>
+      <div class="stats__grid">
+        <div class="stats__item reveal" style="--d:.05s">
+          <span class="stats__value stats__value--serif">June 25, 1985</span>
+          <span class="stats__label">Born</span>
+        </div>
+        <div class="stats__item reveal" style="--d:.15s">
+          <span class="stats__value" data-counter data-target-key="years">0</span>
+          <span class="stats__label">Years Loved</span>
+        </div>
+        <div class="stats__item reveal" style="--d:.25s">
+          <span class="stats__value" data-counter data-target-key="days">0</span>
+          <span class="stats__label">Days Celebrated</span>
+        </div>
+        <div class="stats__item reveal" style="--d:.35s">
+          <span class="stats__value stats__value--infinity" data-counter data-target-key="memories">0</span>
+          <span class="stats__label">Memories Shared</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════════════════ Photo Gallery ══════════════════════ -->
+    <section class="gallery section" id="gallery" aria-labelledby="gallery-title">
+      <p class="section__eyebrow reveal">Through the years</p>
+      <h2 class="section__title reveal" id="gallery-title">A Gallery of&nbsp;Grace</h2>
+      <p class="section__lede reveal">Every photograph a small keepsake, moments we never want to forget.</p>
+      <div class="gallery__masonry" id="galleryGrid">
+        <!-- Populated by script.js from the local photo library -->
+      </div>
+    </section>
+
+    <!-- ══════════════════════ The Places That Made You (3D Globe) ══════════════════════ -->
+    <section class="journey section" id="journey" aria-labelledby="journey-title">
+      <p class="section__eyebrow reveal">Across the world</p>
+      <h2 class="section__title reveal" id="journey-title">The Places That Made&nbsp;You</h2>
+      <p class="section__lede reveal">From a village in Andhra Pradesh to the evergreen Pacific Northwest — every home she made glows a little brighter for it.</p>
+
+      <div class="globe-stage reveal" id="globeStage" role="img"
+           aria-label="An interactive 3D globe tracing Ruheena's life journey from Daggubadu, India across the United States to Woodinville, Washington.">
+        <!-- Three.js renderer canvas is mounted here on first view -->
+
+        <!-- Loading state -->
+        <div class="globe-loader" id="globeLoader">
+          <div class="globe-loader__ring" aria-hidden="true"></div>
+          <p class="globe-loader__text">Charting her journey…</p>
+        </div>
+
+        <!-- Floating glass information card -->
+        <div class="journey-card" id="journeyCard" aria-live="polite">
+          <span class="journey-card__index" id="journeyIndex"></span>
+          <h3 class="journey-card__place" id="journeyPlace"></h3>
+          <p class="journey-card__caption" id="journeyCaption"></p>
+        </div>
+
+        <!-- Final message reveal -->
+        <div class="journey-finale" id="journeyFinale">
+          <p class="journey-finale__text">Every place you called home became brighter because you were there.</p>
+        </div>
+
+        <!-- Replay button -->
+        <button class="journey-replay" id="journeyReplay" hidden>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/></svg>
+          Replay Her Journey
+        </button>
+
+        <p class="globe-hint" id="globeHint" aria-hidden="true">Drag to rotate · scroll to zoom · click a stop to fly</p>
+      </div>
+
+      <!-- Luxury horizontal timeline -->
+      <div class="journey-timeline" id="journeyTimeline" role="list" aria-label="Journey timeline">
+        <!-- Stops injected by journey.js -->
+      </div>
+    </section>
+
+    <!-- ══════════════════════ Reasons We Love You ══════════════════════ -->
+    <section class="reasons section" aria-labelledby="reasons-title">
+      <p class="section__eyebrow reveal">From your son</p>
+      <h2 class="section__title reveal" id="reasons-title">Reasons We Love&nbsp;You</h2>
+      <div class="reasons__grid" id="reasonsGrid">
+        <!-- Populated by script.js -->
+      </div>
+    </section>
+
+    <!-- ══════════════════════ Closing ══════════════════════ -->
+    <section class="closing section" aria-labelledby="closing-title">
+      <h2 class="closing__title reveal" id="closing-title">Here's to you, <em>Mom</em>.</h2>
+      <p class="closing__text reveal">May this year bring you even a fraction of the joy you give us every single day.</p>
+    </section>
+  </main>
+
+  <!-- ══════════════════════ Footer ══════════════════════ -->
+  <footer class="footer">
+    <div class="footer__hearts" aria-hidden="true">♡ ♡ ♡</div>
+    <!-- Says "Happy Birthday Mom" on June 25 only; "For my Mom" every other day -->
+    <p class="footer__name" id="footerGreeting">For my Mom</p>
+  </footer>
+
+  <!-- ══════════════════════ Lightbox ══════════════════════ -->
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Photo viewer" hidden>
+    <div class="lightbox__backdrop" id="lightboxBackdrop"></div>
+    <figure class="lightbox__figure">
+      <img class="lightbox__img" id="lightboxImg" src="" alt="" />
+    </figure>
+    <button class="lightbox__btn lightbox__btn--close" id="lightboxClose" aria-label="Close photo viewer">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+    </button>
+    <button class="lightbox__btn lightbox__btn--prev" id="lightboxPrev" aria-label="Previous photo">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button class="lightbox__btn lightbox__btn--next" id="lightboxNext" aria-label="Next photo">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+    </button>
+    <div class="lightbox__counter" id="lightboxCounter" aria-hidden="true"></div>
+  </div>
+
+  <!-- Back to top -->
+  <button class="back-to-top magnetic" id="backToTop" aria-label="Back to top">
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+  </button>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
