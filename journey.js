@@ -42,7 +42,10 @@ const STOPS = [
 /* The last four stops cluster together in Washington — we descend into
    the state and tour them up close instead of pulling back to orbit. */
 const isWA = (i) => /Washington/i.test(STOPS[i].region);
-const STATE_ZOOM = 1.6; // camera distance for the close, state-level view
+const STATE_ZOOM = 1.27; // camera distance that frames the whole state
+// Camera looks at Washington's centroid (not each individual city) so the
+// whole region fills the frame while the cities light up within it.
+const waCenterDir = () => llToVec3(47.4, -120.4).normalize();
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const R = 1; // earth radius in world units
@@ -122,6 +125,54 @@ function makeHeartTexture() {
   return t;
 }
 
+/* A classic gold map-pin sprite: teardrop head + point, drawn to canvas */
+function makePinTexture() {
+  const w = 128, h = 180;
+  const c = document.createElement("canvas");
+  c.width = w; c.height = h;
+  const g = c.getContext("2d");
+  const cx = w / 2;
+  const headCy = 54;
+  const headR = 44;
+  const tipY = h - 6;
+
+  g.lineJoin = "round";
+  g.shadowColor = "rgba(255,190,90,0.85)";
+  g.shadowBlur = 14;
+
+  // Body = head circle unioned with a tapering tail down to the tip.
+  const body = new Path2D();
+  body.arc(cx, headCy, headR, 0, Math.PI * 2);
+  const tail = new Path2D();
+  tail.moveTo(cx - headR * 0.82, headCy + headR * 0.55);
+  tail.lineTo(cx + headR * 0.82, headCy + headR * 0.55);
+  tail.lineTo(cx, tipY);
+  tail.closePath();
+
+  const grad = g.createLinearGradient(0, headCy - headR, 0, tipY);
+  grad.addColorStop(0, "#fff0c9");
+  grad.addColorStop(0.45, "#f2c46a");
+  grad.addColorStop(1, "#d99a3c");
+  g.fillStyle = grad;
+  g.fill(body);
+  g.fill(tail);
+
+  // Hole in the head + a soft highlight for a little dimension.
+  g.shadowBlur = 0;
+  g.beginPath();
+  g.arc(cx, headCy, headR * 0.40, 0, Math.PI * 2);
+  g.fillStyle = "rgba(58,30,6,0.55)";
+  g.fill();
+  g.beginPath();
+  g.arc(cx - headR * 0.12, headCy - headR * 0.14, headR * 0.16, 0, Math.PI * 2);
+  g.fillStyle = "rgba(255,242,214,0.55)";
+  g.fill();
+
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    Main entry
    ═══════════════════════════════════════════════════════════════ */
@@ -156,7 +207,7 @@ export function initJourney() {
   controls.rotateSpeed = 0.55;
   controls.zoomSpeed = 0.7;
   controls.enablePan = false;
-  controls.minDistance = 1.5;
+  controls.minDistance = 1.1;
   controls.maxDistance = 6;
   controls.autoRotate = false;
   controls.autoRotateSpeed = 0.28;
@@ -317,6 +368,7 @@ export function initJourney() {
 
   /* ─── Shared resources ─── */
   const glowTex = makeGlowTexture();
+  const pinTex = makePinTexture();
   const arcGroup = new THREE.Group();
   const markerGroup = new THREE.Group();
   scene.add(arcGroup, markerGroup);
@@ -327,50 +379,47 @@ export function initJourney() {
 
   /* Build one permanent, gently pulsing marker with tiny drifting particles */
   function addMarker(i) {
-    const pos = llToVec3(STOPS[i].lat, STOPS[i].lng, R * 1.008);
+    const pos = llToVec3(STOPS[i].lat, STOPS[i].lng, R * 1.002);
     const g = new THREE.Group();
     g.position.copy(pos);
 
-    const core = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: glowTex, color: 0xffe6ad, transparent: true,
-      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
+    // A soft warm glow pooled at the base of the pin.
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: glowTex, color: 0xffd27a, transparent: true,
+      blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true, opacity: 0.85,
     }));
-    core.scale.setScalar(0.09);
-    core.userData.index = i;
-    g.add(core);
-    markerMeshes.push(core);
+    glow.scale.setScalar(0.05);
+    g.add(glow);
 
-    // tiny orbiting particles
-    const P = 14;
-    const pg = new THREE.BufferGeometry();
-    const arr = new Float32Array(P * 3);
-    const seeds = [];
-    for (let k = 0; k < P; k++) {
-      seeds.push({ ax: Math.random() * Math.PI * 2, ay: Math.random() * Math.PI * 2, r: 0.03 + Math.random() * 0.03, sp: 0.5 + Math.random() });
-      arr.set([0, 0, 0], k * 3);
-    }
-    pg.setAttribute("position", new THREE.BufferAttribute(arr, 3));
-    const pts = new THREE.Points(pg, new THREE.PointsMaterial({
-      size: 0.02, map: glowTex, color: 0xffdca0, transparent: true,
-      blending: THREE.AdditiveBlending, depthWrite: false, sizeAttenuation: true,
+    // The map pin — tip anchored to the surface, always facing the camera,
+    // depth-tested so pins on the far side hide behind the globe.
+    const aspect = pinTex.image.width / pinTex.image.height;
+    const pin = new THREE.Sprite(new THREE.SpriteMaterial({
+      map: pinTex, transparent: true, depthWrite: false, depthTest: true,
     }));
-    g.add(pts);
+    pin.center.set(0.5, 0.02); // bottom-centre (the point) sits on the location
+    pin.userData.index = i;
+    g.add(pin);
+    markerMeshes.push(pin);
+
     markerGroup.add(g);
 
+    // Keep a constant on-screen size by scaling with distance to the camera,
+    // so pins read the same whether we're in orbit or zoomed into the state.
+    const sizePin = (thump) => {
+      const dist = camera.position.distanceTo(g.position);
+      const H = dist * (0.07 + 0.006 * thump);
+      pin.scale.set(H * aspect, H, 1);
+      const gH = dist * 0.05;
+      glow.scale.setScalar(gH * (0.9 + 0.35 * thump));
+    };
+    sizePin(0);
     persistent.push((t) => {
-      // heartbeat: double thump
+      // Gentle heartbeat: a small bob on the pin and a pulsing glow.
       const beat = t * 1.4 % 1;
       const thump = Math.exp(-14 * beat) + 0.6 * Math.exp(-14 * ((beat + 0.28) % 1));
-      core.scale.setScalar(0.075 + 0.04 * thump);
-      const a = pg.attributes.position.array;
-      for (let k = 0; k < P; k++) {
-        const s = seeds[k];
-        const ang = s.ay + t * s.sp;
-        a[k * 3] = Math.cos(ang) * s.r;
-        a[k * 3 + 1] = Math.sin(ang) * s.r * 0.6;
-        a[k * 3 + 2] = Math.sin(s.ax + t * s.sp) * s.r;
-      }
-      pg.attributes.position.needsUpdate = true;
+      sizePin(thump);
+      glow.material.opacity = 0.5 + 0.35 * thump;
     });
     return pos;
   }
@@ -389,7 +438,7 @@ export function initJourney() {
       pts.push(dir.multiplyScalar(R * (1 + lift * Math.sin(Math.PI * t))));
     }
     const curve = new THREE.CatmullRomCurve3(pts);
-    const geo = new THREE.TubeGeometry(curve, 120, 0.006, 8, false);
+    const geo = new THREE.TubeGeometry(curve, 160, 0.0022, 8, false);
     const mat = new THREE.MeshBasicMaterial({
       color: 0xffcf7a, transparent: true, opacity: 0.9,
       blending: THREE.AdditiveBlending, depthWrite: false,
@@ -409,10 +458,13 @@ export function initJourney() {
     ring.position.copy(pos);
     scene.add(ring);
     let e = 0;
+    // Scale the flash to the current camera distance so it reads the same
+    // whether we're out in orbit or zoomed right into the state.
+    const camDist = camera.position.length();
     effects.push((dt) => {
       e += dt;
       const t = e / 1.4;
-      ring.scale.setScalar(0.1 + t * 0.55);
+      ring.scale.setScalar(camDist * (0.05 + t * 0.22));
       ring.material.opacity = Math.max(0, 0.9 * (1 - t));
       if (t >= 1) { scene.remove(ring); ring.material.dispose(); return false; }
       return true;
@@ -523,7 +575,7 @@ export function initJourney() {
 
   /* ─── The golden traveller + camera follow for one hop ─── */
   async function travel(fromIdx, toIdx, opts = {}) {
-    const { endDist = 2.0, lift = 0.7, dur = 3.0 } = opts;
+    const { endDist = 2.0, lift = 0.7, dur = 3.0, camHold = null } = opts;
     const { tube, curve, total } = makeArc(fromIdx, toIdx);
     tube.geometry.setDrawRange(0, 0);
 
@@ -531,21 +583,25 @@ export function initJourney() {
       map: glowTex, color: 0xfff1cf, transparent: true,
       blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false,
     }));
-    head.scale.setScalar(0.14);
+    const headBase = 0.07 * endDist; // keep the light proportional to the zoom
+    head.scale.setScalar(headBase);
     scene.add(head);
 
     const a = llToVec3(STOPS[fromIdx].lat, STOPS[fromIdx].lng).normalize();
     const b = llToVec3(STOPS[toIdx].lat, STOPS[toIdx].lng).normalize();
     const fromDist = camera.position.length();
+    const fromDir = camera.position.clone().normalize();
 
     await tween(dur, (t) => {
       const e = easeInOut(t);
       const p = curve.getPoint(e);
       head.position.copy(p);
-      head.scale.setScalar(0.14 + 0.03 * Math.sin(t * Math.PI));
+      head.scale.setScalar(headBase + 0.03 * endDist * Math.sin(t * Math.PI));
       tube.geometry.setDrawRange(0, Math.floor(total * e));
-      // camera trails just behind the light, easing toward the target altitude
-      const camd = slerpDir(a, b, Math.max(0, e - 0.05));
+      // Either trail behind the light, or swing to a fixed framing (camHold),
+      // while easing toward the target altitude.
+      const camd = camHold ? slerpDir(fromDir, camHold, e)
+                           : slerpDir(a, b, Math.max(0, e - 0.05));
       const dist = fromDist + (endDist - fromDist) * e + lift * Math.sin(Math.PI * e);
       camera.position.copy(camd).multiplyScalar(dist);
       camera.lookAt(0, 0, 0);
@@ -581,6 +637,7 @@ export function initJourney() {
     heartActive = false;
 
     const india = llToVec3(STOPS[0].lat, STOPS[0].lng).normalize();
+    const waCenter = waCenterDir();
 
     // Intro: peaceful far rotation in near-darkness, India facing us
     sunDir.copy(india).applyAxisAngle(new THREE.Vector3(0, 1, 0), 2.6).normalize(); // sun behind → night
@@ -608,11 +665,11 @@ export function initJourney() {
       const enteringWA = isWA(i) && !isWA(i - 1); // arriving at the first WA city
       const withinWA   = isWA(i) &&  isWA(i - 1); // hopping between WA cities
       if (enteringWA) {
-        // Descend from cross-country altitude down into Washington state
-        await travel(i - 1, i, { endDist: STATE_ZOOM, lift: 0.5, dur: 3.2 });
+        // Descend from cross-country altitude and frame the whole state
+        await travel(i - 1, i, { endDist: STATE_ZOOM, lift: 0.25, dur: 3.6, camHold: waCenter });
       } else if (withinWA) {
-        // Short, low, close-up hops between neighbouring WA cities
-        await travel(i - 1, i, { endDist: STATE_ZOOM, lift: 0.05, dur: 1.7 });
+        // Camera holds on the state; the light hops between the nearby cities
+        await travel(i - 1, i, { endDist: STATE_ZOOM, lift: 0.02, dur: 1.7, camHold: waCenter });
       } else {
         await travel(i - 1, i);
       }
@@ -698,7 +755,8 @@ export function initJourney() {
   /* ─── Click / timeline fly-to (after the cinematic) ─── */
   async function flyTo(i, fromUI) {
     if (playing) return;
-    const dir = llToVec3(STOPS[i].lat, STOPS[i].lng).normalize();
+    // For WA cities, frame the whole state; otherwise centre on the city.
+    const dir = isWA(i) ? waCenterDir() : llToVec3(STOPS[i].lat, STOPS[i].lng).normalize();
     controls.enabled = false;
     controls.autoRotate = false;
     await flyCameraTo(dir, isWA(i) ? STATE_ZOOM : 1.95, 1.4);
