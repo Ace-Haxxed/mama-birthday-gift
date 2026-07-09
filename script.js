@@ -568,11 +568,29 @@ function initJourneyLazy() {
     import("./journey.js")
       .then((mod) => mod.initJourney())
       .catch((err) => {
-        console.error("Globe failed to load:", err);
+        // The globe is 100% offline — every asset (Three.js, OrbitControls,
+        // and the Earth textures) is vendored locally. The only thing that can
+        // stop it is HOW the page is opened: browsers refuse to load ES modules
+        // over the file:// protocol (CORS), so opening index.html by
+        // double-clicking will fail here even with a perfect internet
+        // connection. Surface the *real* error instead of blaming the network.
+        console.error("Globe failed to initialize. Real error:", err);
+
+        const isFileProtocol = location.protocol === "file:";
         const loader = $("#globeLoader");
-        if (loader) {
-          loader.querySelector(".globe-loader__text").textContent =
-            "The globe needs an internet connection to load.";
+        if (!loader) return;
+        const textEl = loader.querySelector(".globe-loader__text");
+        if (!textEl) return;
+
+        if (isFileProtocol) {
+          textEl.innerHTML =
+            "This page was opened directly from a file. Browsers block the " +
+            "globe's modules over <code>file://</code>.<br>Run it through a " +
+            "local server instead (see <code>START-HERE.md</code>). " +
+            "No internet is required.";
+        } else {
+          // Served over http(s) but still failed — show the genuine JS error.
+          textEl.textContent = "Globe error: " + (err && err.message ? err.message : String(err));
         }
       });
   }, { rootMargin: "200px" }); // begin loading just before it's on screen
