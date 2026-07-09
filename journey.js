@@ -15,11 +15,15 @@
 import * as THREE from "three";
 import { OrbitControls } from "./vendor/OrbitControls.js";
 
-/* ─────────── Local texture assets ─────────── */
+/* ─────────── Local texture assets ─────────────────────────────
+   4K (4096×2048) day/night maps — NASA Blue Marble & Black Marble
+   (public domain), vendored locally so the globe stays crisp when
+   we zoom into a region and still works fully offline. 4096 is the
+   largest size safely supported across GPUs (incl. mobile). */
 const TEX = {
-  day:      "assets/textures/earth_atmos_2048.jpg",
-  night:    "assets/textures/earth_lights_2048.png",
-  clouds:   "assets/textures/earth_clouds_1024.png",
+  day:      "assets/textures/earth_day_4096.jpg",    // 4096×2048
+  night:    "assets/textures/earth_night_4096.jpg",  // 4096×2048
+  clouds:   "assets/textures/earth_clouds_2048.jpg", // 2048×1024
   specular: "assets/textures/earth_specular_2048.jpg",
 };
 
@@ -34,6 +38,11 @@ const STOPS = [
   { label: "Duvall",         region: "Duvall, Washington · Ridge at Big Rock", lat: 47.7423, lng: -121.9857, desc: "Surrounded by nature and peaceful beauty." },
   { label: "Woodinville",    region: "Woodinville, Washington",            lat: 47.7601,    lng: -122.1230,  desc: "Home. Where countless memories continue to be made." },
 ];
+
+/* The last four stops cluster together in Washington — we descend into
+   the state and tour them up close instead of pulling back to orbit. */
+const isWA = (i) => /Washington/i.test(STOPS[i].region);
+const STATE_ZOOM = 1.6; // camera distance for the close, state-level view
 
 const REDUCED = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const R = 1; // earth radius in world units
@@ -513,7 +522,8 @@ export function initJourney() {
   }
 
   /* ─── The golden traveller + camera follow for one hop ─── */
-  async function travel(fromIdx, toIdx) {
+  async function travel(fromIdx, toIdx, opts = {}) {
+    const { endDist = 2.0, lift = 0.7, dur = 3.0 } = opts;
     const { tube, curve, total } = makeArc(fromIdx, toIdx);
     tube.geometry.setDrawRange(0, 0);
 
@@ -528,15 +538,15 @@ export function initJourney() {
     const b = llToVec3(STOPS[toIdx].lat, STOPS[toIdx].lng).normalize();
     const fromDist = camera.position.length();
 
-    await tween(3.0, (t) => {
+    await tween(dur, (t) => {
       const e = easeInOut(t);
       const p = curve.getPoint(e);
       head.position.copy(p);
       head.scale.setScalar(0.14 + 0.03 * Math.sin(t * Math.PI));
       tube.geometry.setDrawRange(0, Math.floor(total * e));
-      // camera trails just behind the light, pulling back over the ocean
+      // camera trails just behind the light, easing toward the target altitude
       const camd = slerpDir(a, b, Math.max(0, e - 0.05));
-      const dist = fromDist + (2.0 - fromDist) * e + 0.7 * Math.sin(Math.PI * e);
+      const dist = fromDist + (endDist - fromDist) * e + lift * Math.sin(Math.PI * e);
       camera.position.copy(camd).multiplyScalar(dist);
       camera.lookAt(0, 0, 0);
     });
@@ -595,7 +605,17 @@ export function initJourney() {
     // Travel the rest of the journey
     for (let i = 1; i < STOPS.length; i++) {
       hideCard();
-      await travel(i - 1, i);
+      const enteringWA = isWA(i) && !isWA(i - 1); // arriving at the first WA city
+      const withinWA   = isWA(i) &&  isWA(i - 1); // hopping between WA cities
+      if (enteringWA) {
+        // Descend from cross-country altitude down into Washington state
+        await travel(i - 1, i, { endDist: STATE_ZOOM, lift: 0.5, dur: 3.2 });
+      } else if (withinWA) {
+        // Short, low, close-up hops between neighbouring WA cities
+        await travel(i - 1, i, { endDist: STATE_ZOOM, lift: 0.05, dur: 1.7 });
+      } else {
+        await travel(i - 1, i);
+      }
       await arrive(i);
     }
 
@@ -681,7 +701,7 @@ export function initJourney() {
     const dir = llToVec3(STOPS[i].lat, STOPS[i].lng).normalize();
     controls.enabled = false;
     controls.autoRotate = false;
-    await flyCameraTo(dir, 1.95, 1.4);
+    await flyCameraTo(dir, isWA(i) ? STATE_ZOOM : 1.95, 1.4);
     markTimeline(i);
     showCard(i);
     controls.enabled = true;
