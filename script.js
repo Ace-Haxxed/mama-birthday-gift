@@ -675,13 +675,22 @@ function initJumpscares() {
     const ctx = ensureAudio();
     if (!ctx) return;
     const now = ctx.currentTime;
+
+    // A compressor slams everything up to the ceiling so it's genuinely LOUD.
+    const comp = ctx.createDynamicsCompressor();
+    comp.threshold.value = -30;
+    comp.knee.value = 6;
+    comp.ratio.value = 20;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.25;
+
     const master = ctx.createGain();
     master.gain.setValueAtTime(0.0001, now);
-    master.gain.exponentialRampToValueAtTime(0.9, now + 0.015);
-    master.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
-    master.connect(ctx.destination);
+    master.gain.exponentialRampToValueAtTime(4.0, now + 0.01); // slam on
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+    comp.connect(master).connect(ctx.destination);
 
-    const dur = 1.4;
+    const dur = 1.5;
     const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
     const data = buf.getChannelData(0);
     for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
@@ -689,18 +698,21 @@ function initJumpscares() {
     noise.buffer = buf;
     const bp = ctx.createBiquadFilter();
     bp.type = "bandpass"; bp.frequency.value = 1400; bp.Q.value = 0.6;
-    noise.connect(bp).connect(master);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.value = 1.4;
+    noise.connect(bp).connect(noiseGain).connect(comp);
     noise.start(now); noise.stop(now + dur);
 
-    [196, 208, 311].forEach((f) => {
+    // Detuned saws (with a sub) sweeping down for a dissonant blast.
+    [98, 196, 208, 311].forEach((f) => {
       const o = ctx.createOscillator();
       o.type = "sawtooth";
       o.frequency.setValueAtTime(f * 4, now);
-      o.frequency.exponentialRampToValueAtTime(f, now + 1.1);
+      o.frequency.exponentialRampToValueAtTime(f, now + 1.15);
       const g = ctx.createGain();
-      g.gain.value = 0.22;
-      o.connect(g).connect(master);
-      o.start(now); o.stop(now + 1.25);
+      g.gain.value = 0.6;
+      o.connect(g).connect(comp);
+      o.start(now); o.stop(now + 1.35);
     });
   }
 
