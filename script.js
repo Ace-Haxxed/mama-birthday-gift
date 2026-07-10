@@ -40,6 +40,12 @@ const PHOTOS = [
 const BONUS_PHOTOS = ["Amyra Jumpscare.jpeg", "Jumpscare number 2.jpeg"];
 const BONUS_CHANCE = 1 / 200;
 
+/* Hidden jumpscare easter eggs (see initJumpscares) */
+const JUMP_IMAGES = {
+  amyra: "Amyra Jumpscare.jpeg",
+  weird: "Jumpscare number 2.jpeg",
+};
+
 const BIRTH_DATE = new Date(1985, 5, 25); // June 25, 1985 (months are 0-based)
 const DISPLAYED_AGE = 40; // her age — shown in the Memorial counter and "Years Loved"
 
@@ -642,6 +648,103 @@ function initParallax() {
 }
 
 /* ─────────────────────────────────────────────
+   16. Jumpscares — hidden easter eggs 👻
+   • type "amyra"  → Amyra jumpscare
+   • type "weird"  → the other jumpscare
+   • a small random chance one ambushes you while browsing
+   Each is the real deal: full-screen image, screech, and a violent shake.
+   ───────────────────────────────────────────── */
+function initJumpscares() {
+  let active = false;
+  let audioCtx = null;
+
+  // Prepare/resume audio on the first real gesture (browser autoplay policy).
+  const ensureAudio = () => {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) { try { audioCtx = new AC(); } catch { audioCtx = null; } }
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    return audioCtx;
+  };
+  window.addEventListener("pointerdown", ensureAudio);
+  window.addEventListener("keydown", ensureAudio);
+
+  // A short, nasty screech: a band-passed noise burst + detuned saw tones.
+  function screech() {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+    const master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, now);
+    master.gain.exponentialRampToValueAtTime(0.9, now + 0.015);
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 1.4);
+    master.connect(ctx.destination);
+
+    const dur = 1.4;
+    const buf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * dur), ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const noise = ctx.createBufferSource();
+    noise.buffer = buf;
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass"; bp.frequency.value = 1400; bp.Q.value = 0.6;
+    noise.connect(bp).connect(master);
+    noise.start(now); noise.stop(now + dur);
+
+    [196, 208, 311].forEach((f) => {
+      const o = ctx.createOscillator();
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(f * 4, now);
+      o.frequency.exponentialRampToValueAtTime(f, now + 1.1);
+      const g = ctx.createGain();
+      g.gain.value = 0.22;
+      o.connect(g).connect(master);
+      o.start(now); o.stop(now + 1.25);
+    });
+  }
+
+  function strike(src) {
+    if (active) return;
+    active = true;
+
+    const overlay = document.createElement("div");
+    overlay.className = "jumpscare" + (prefersReducedMotion ? "" : " jumpscare--shake");
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = "";
+    overlay.appendChild(img);
+    document.body.appendChild(overlay);
+
+    if (!prefersReducedMotion) screech();
+    if (navigator.vibrate) { try { navigator.vibrate([0, 220, 60, 220]); } catch {} }
+
+    setTimeout(() => {
+      overlay.classList.add("is-out");
+      setTimeout(() => { overlay.remove(); active = false; }, 320);
+    }, 1300);
+  }
+
+  // ── Typed triggers (global — not tied to any input field) ──
+  let buffer = "";
+  window.addEventListener("keydown", (e) => {
+    const t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
+    if (e.key.length !== 1 || !/[a-z]/i.test(e.key)) return;
+    buffer = (buffer + e.key.toLowerCase()).slice(-8);
+    if (buffer.endsWith("amyra")) { buffer = ""; strike(JUMP_IMAGES.amyra); }
+    else if (buffer.endsWith("weird")) { buffer = ""; strike(JUMP_IMAGES.weird); }
+  });
+
+  // ── Random ambush while browsing normally ──
+  const pics = [JUMP_IMAGES.amyra, JUMP_IMAGES.weird];
+  setInterval(() => {
+    if (active || document.hidden) return;
+    if (Math.random() < 0.06) strike(pics[Math.floor(Math.random() * pics.length)]);
+  }, 25000);
+}
+
+/* ─────────────────────────────────────────────
    Boot
    ───────────────────────────────────────────── */
 document.addEventListener("DOMContentLoaded", () => {
@@ -659,4 +762,5 @@ document.addEventListener("DOMContentLoaded", () => {
   initMagnetic();
   initParallax();
   observeReveals();
+  initJumpscares();
 });

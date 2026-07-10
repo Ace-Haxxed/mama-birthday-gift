@@ -558,6 +558,32 @@ body.is-loaded .reveal-on-load { opacity: 1; transform: none; filter: blur(0); }
   text-shadow: 0 2px 34px rgba(201, 168, 106, 0.45);
 }
 
+/* ─── Hidden jumpscares (easter eggs) ─── */
+.jumpscare {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  background: #000;
+  overflow: hidden;
+  cursor: none;
+}
+.jumpscare img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scale(1.06);
+}
+.jumpscare--shake { animation: jumpscare-shake 90ms steps(2, end) infinite; }
+.jumpscare.is-out { opacity: 0; transition: opacity 0.3s ease; }
+@keyframes jumpscare-shake {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-14px, 10px); }
+  40%  { transform: translate(12px, -12px); }
+  60%  { transform: translate(-10px, -8px); }
+  80%  { transform: translate(9px, 12px); }
+  100% { transform: translate(0, 0); }
+}
+
 /* Replay button (glass) */
 .journey-replay {
   position: absolute;
