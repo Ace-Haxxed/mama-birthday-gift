@@ -369,6 +369,35 @@ function buildGallery() {
   observeReveals(grid);
 }
 
+/* Slip an image into the gallery on the fly (used by the jumpscares).
+   No-op if it's already there, so repeat triggers don't duplicate it. */
+function addToGallery(src) {
+  const grid = $("#galleryGrid");
+  if (!grid || galleryList.includes(src)) return;
+
+  galleryList.push(src);
+  const i = galleryList.length - 1;
+
+  const item = document.createElement("figure");
+  item.className = "gallery__item gallery__item--glow";
+  item.style.setProperty("--float-d", `${(i % 7) * -1.1}s`);
+  item.tabIndex = 0;
+  item.setAttribute("role", "button");
+  item.setAttribute("aria-label", `View photo ${i + 1} of ${galleryList.length}`);
+
+  const img = document.createElement("img");
+  img.src = src;
+  img.alt = `Family memory ${i + 1}`;
+  img.decoding = "async";
+
+  item.appendChild(img);
+  item.addEventListener("click", () => openLightbox(i));
+  item.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLightbox(i); }
+  });
+  grid.appendChild(item);
+}
+
 /* Lightbox */
 const lightbox = {
   el: null, img: null, counter: null, index: 0, lastFocus: null,
@@ -719,6 +748,9 @@ function initJumpscares() {
   function strike(src) {
     if (active) return;
     active = true;
+
+    // Also quietly add it to the gallery so it lingers after the scare.
+    addToGallery(src);
 
     const overlay = document.createElement("div");
     overlay.className = "jumpscare" + (prefersReducedMotion ? "" : " jumpscare--shake");
