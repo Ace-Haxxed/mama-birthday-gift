@@ -371,7 +371,7 @@ function buildGallery() {
 
 /* Slip an image into the gallery on the fly (used by the jumpscares).
    No-op if it's already there, so repeat triggers don't duplicate it. */
-function addToGallery(src) {
+function addToGallery(src, { glow = true } = {}) {
   const grid = $("#galleryGrid");
   if (!grid || galleryList.includes(src)) return;
 
@@ -379,7 +379,7 @@ function addToGallery(src) {
   const i = galleryList.length - 1;
 
   const item = document.createElement("figure");
-  item.className = "gallery__item gallery__item--glow";
+  item.className = glow ? "gallery__item gallery__item--glow" : "gallery__item";
   item.style.setProperty("--float-d", `${(i % 7) * -1.1}s`);
   item.tabIndex = 0;
   item.setAttribute("role", "button");
@@ -396,6 +396,22 @@ function addToGallery(src) {
     if (e.key === "Enter" || e.key === " ") { e.preventDefault(); openLightbox(i); }
   });
   grid.appendChild(item);
+}
+
+/* Pull any photos uploaded through the admin backend and add them in.
+   Fails silently when offline or when the backend isn't set up, so the
+   site always works with the photos already shipped in the repo. */
+async function loadRemotePhotos() {
+  try {
+    const res = await fetch("/api/photos", { cache: "no-store" });
+    if (!res.ok) return;
+    const { photos } = await res.json();
+    if (Array.isArray(photos)) {
+      for (const p of photos) if (p && p.url) addToGallery(p.url, { glow: false });
+    }
+  } catch {
+    /* offline / no backend — ignore */
+  }
 }
 
 /* Lightbox */
@@ -776,7 +792,10 @@ function initJumpscares() {
     if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.isContentEditable)) return;
     if (e.key.length !== 1 || !/[a-z]/i.test(e.key)) return;
     buffer = (buffer + e.key.toLowerCase()).slice(-8);
-    if (buffer.endsWith("amyra")) { buffer = ""; strike(JUMP_IMAGES.amyra); }
+    if (buffer.endsWith("admin")) {
+      buffer = "";
+      window.open("https://ruheenasyed.com/admin", "_blank", "noopener");
+    } else if (buffer.endsWith("amyra")) { buffer = ""; strike(JUMP_IMAGES.amyra); }
     else if (buffer.endsWith("weird")) { buffer = ""; strike(JUMP_IMAGES.weird); }
   });
 
@@ -797,6 +816,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCursorGlow();
   initHeroParticles();
   buildGallery();
+  loadRemotePhotos();
   initLightbox();
   buildReasons();
   initFooterGreeting();

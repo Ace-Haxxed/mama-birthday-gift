@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Admin · Add Photos · Ruheena Syed</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤍</text></svg>" />
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh;
+      font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: radial-gradient(1200px 800px at 50% -10%, #1a1410, #0a0908 60%);
+      color: #f3ece0; padding: clamp(1rem, 4vw, 3rem);
+    }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    h1 { font-weight: 600; letter-spacing: .3px; margin: 0 0 .25rem; }
+    p.sub { color: #b6a892; margin: 0 0 1.75rem; }
+    .card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px; padding: 1.25rem 1.35rem; margin-bottom: 1.25rem;
+    }
+    label.f { display: block; font-size: .85rem; color: #c9bca6; margin-bottom: .4rem; }
+    input[type=password] {
+      width: 100%; padding: .7rem .85rem; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,.14); background: #16110d; color: #fff; font-size: 1rem;
+    }
+    .row { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+    button {
+      border: 0; border-radius: 10px; padding: .7rem 1.1rem; font-size: .95rem; font-weight: 600;
+      background: linear-gradient(180deg, #f2c46a, #d99a3c); color: #2a1c06; cursor: pointer;
+    }
+    button.ghost { background: transparent; border: 1px solid rgba(255,255,255,.18); color: #f3ece0; }
+    button:disabled { opacity: .5; cursor: default; }
+    #drop {
+      border: 2px dashed rgba(255,255,255,.16); border-radius: 14px; padding: 2rem 1rem;
+      text-align: center; color: #b6a892; transition: border-color .2s, background .2s; cursor: pointer;
+    }
+    #drop.over { border-color: #f2c46a; background: rgba(242,196,106,.06); }
+    #status { min-height: 1.2em; color: #c9bca6; font-size: .9rem; margin-top: .6rem; }
+    .muted { color: #8c8073; }
+    #photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .7rem; margin-top: .5rem; }
+    .thumb { margin: 0; position: relative; border-radius: 10px; overflow: hidden; background: #16110d; aspect-ratio: 1; }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .thumb .del {
+      position: absolute; inset: auto .35rem .35rem auto; padding: .3rem .55rem; font-size: .72rem;
+      background: rgba(20,10,6,.8); color: #ffb4a4; border: 1px solid rgba(255,120,100,.4);
+    }
+    a.back { color: #d9b877; text-decoration: none; font-size: .9rem; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Add Photos</h1>
+    <p class="sub">Uploads appear in the gallery for <strong>everyone</strong>, on any device.
+      <a class="back" href="/">← back to the site</a></p>
+
+    <div class="card">
+      <label class="f" for="pw">Admin password</label>
+      <div class="row">
+        <input id="pw" type="password" autocomplete="current-password" placeholder="enter password" style="flex:1; min-width:200px" />
+        <button id="unlock" class="ghost" type="button">Save for this session</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="drop">
+        <strong>Drop photos here</strong> or
+        <button id="pick" type="button" style="margin-left:.3rem">Choose files</button>
+        <input id="file" type="file" accept="image/*" multiple hidden />
+        <div style="margin-top:.5rem; font-size:.85rem">Large photos are automatically resized before upload.</div>
+      </div>
+      <div id="status"></div>
+    </div>
+
+    <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <strong>Current photos</strong>
+        <button id="reload" class="ghost" type="button">Refresh</button>
+      </div>
+      <div id="photos"><p class="muted">Loading…</p></div>
+    </div>
+  </div>
+
+  <script src="./admin.js" defer></script>
+</body>
+</html>
