@@ -12,12 +12,21 @@ function api(path, opts = {}) {
   return fetch(path, Object.assign({}, opts, { headers }));
 }
 
+/* Pull the server's error message out of a failed response. */
+async function apiError(r) {
+  let msg = "";
+  try { msg = (await r.json()).error || ""; } catch { /* non-JSON body */ }
+  if (r.status === 404) return "no backend here — this only works on the Vercel site (ruheenasyed.com/admin), not localhost or GitHub Pages";
+  return `${msg || "request failed"} (HTTP ${r.status})`;
+}
+
 async function verify(pw) {
   try {
     const r = await fetch("/api/auth", { method: "POST", headers: { "x-admin-password": pw } });
-    return r.ok;
+    if (r.ok) return { ok: true };
+    return { ok: false, msg: await apiError(r) };
   } catch {
-    return false;
+    return { ok: false, msg: "could not reach the server — are you online?" };
   }
 }
 
@@ -58,7 +67,9 @@ async function refresh() {
   grid.innerHTML = '<p class="muted">Loading…</p>';
   try {
     const r = await fetch("/api/photos", { cache: "no-store" });
-    const { photos = [] } = await r.json();
+    if (!r.ok) { grid.innerHTML = ""; grid.appendChild(mutedText(`Could not load photos: ${await apiError(r)}`)); return; }
+    const { photos = [], error } = await r.json();
+    if (error) { grid.innerHTML = ""; grid.appendChild(mutedText(`Storage error: ${error}`)); return; }
     if (!photos.length) { grid.innerHTML = '<p class="muted">No uploaded photos yet.</p>'; return; }
     grid.innerHTML = "";
     photos.slice().reverse().forEach((p) => {
@@ -73,7 +84,7 @@ async function refresh() {
         btn.disabled = true;
         const dr = await api("/api/photos?url=" + encodeURIComponent(p.url), { method: "DELETE" });
         if (dr.ok) refresh();
-        else { alert("Delete failed — check the password."); btn.disabled = false; }
+        else { alert("Delete failed: " + (await apiError(dr))); btn.disabled = false; }
       };
       fig.append(img, btn);
       grid.appendChild(fig);
@@ -83,10 +94,17 @@ async function refresh() {
   }
 }
 
+function mutedText(text) {
+  const p = document.createElement("p");
+  p.className = "muted";
+  p.textContent = text;
+  return p;
+}
+
 async function handleFiles(files) {
   const status = $("#status");
   if (!getPw()) { alert("Enter the admin password first."); return; }
-  let ok = 0, fail = 0;
+  let ok = 0, fail = 0, lastErr = "";
   for (const f of files) {
     if (!f.type || !f.type.startsWith("image/")) continue;
     status.textContent = `Uploading ${f.name}…`;
@@ -98,10 +116,16 @@ async function handleFiles(files) {
         body: JSON.stringify(payload),
       });
       if (r.ok) ok++;
-      else { fail++; if (r.status === 401) { status.textContent = "Wrong password."; return; } }
-    } catch { fail++; }
+      else {
+        fail++;
+        lastErr = await apiError(r);
+        if (r.status === 401) { status.textContent = `Upload failed: ${lastErr}`; return; }
+      }
+    } catch { fail++; lastErr = "network error while uploading"; }
   }
-  status.textContent = `Done — ${ok} added${fail ? `, ${fail} failed` : ""}.`;
+  status.textContent = fail
+    ? `Done — ${ok} added, ${fail} failed. Last error: ${lastErr}`
+    : `Done — ${ok} added.`;
   refresh();
 }
 
@@ -114,11 +138,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     if (!pw) { $("#gateError").textContent = "Enter the password."; return; }
     unlockBtn.disabled = true;
     unlockBtn.textContent = "Checking…";
-    const ok = await verify(pw);
+    const res = await verify(pw);
     unlockBtn.disabled = false;
     unlockBtn.textContent = "Unlock";
-    if (ok) { setPw(pw); showContent(); }
-    else { sessionStorage.removeItem(PW_KEY); $("#gateError").textContent = "Wrong password."; }
+    if (res.ok) { setPw(pw); showContent(); }
+    else { sessionStorage.removeItem(PW_KEY); $("#gateError").textContent = res.msg; }
   };
 
   unlockBtn.onclick = tryUnlock;
@@ -140,7 +164,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const stored = getPw();
   if (stored) {
     pwInput.value = stored;
-    if (await verify(stored)) showContent();
+    if ((await verify(stored)).ok) showContent();
     else { sessionStorage.removeItem(PW_KEY); showGate(""); }
   } else {
     showGate("");

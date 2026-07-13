@@ -8,9 +8,17 @@ module.exports = async (req, res) => {
     return res.status(405).json({ error: "method not allowed" });
   }
 
+  if (!process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "ADMIN_PASSWORD is not set on the server — add it in Vercel → Settings → Environment Variables, then redeploy" });
+  }
+
   const pw = req.headers["x-admin-password"];
-  if (!pw || !process.env.ADMIN_PASSWORD || pw !== process.env.ADMIN_PASSWORD) {
-    return res.status(401).json({ error: "unauthorized" });
+  if (!pw || pw !== process.env.ADMIN_PASSWORD) {
+    return res.status(401).json({ error: "wrong password" });
+  }
+
+  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+    return res.status(500).json({ error: "no Blob store connected — Vercel → Storage → create a Blob store and connect it to this project, then redeploy" });
   }
 
   let body = req.body;
