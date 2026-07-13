@@ -82,7 +82,10 @@ async function refresh() {
       btn.onclick = async () => {
         if (!confirm("Delete this photo for everyone?")) return;
         btn.disabled = true;
-        const dr = await api("/api/photos?url=" + encodeURIComponent(p.url), { method: "DELETE" });
+        const key = p.pathname
+          ? "path=" + encodeURIComponent(p.pathname)
+          : "url=" + encodeURIComponent(p.url);
+        const dr = await api("/api/photos?" + key, { method: "DELETE" });
         if (dr.ok) refresh();
         else { alert("Delete failed: " + (await apiError(dr))); btn.disabled = false; }
       };

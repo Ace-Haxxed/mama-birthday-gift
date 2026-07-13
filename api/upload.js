@@ -30,8 +30,10 @@ module.exports = async (req, res) => {
   const name = `gallery/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
   try {
-    const blob = await put(name, buf, { access: "public", contentType: type });
-    return res.status(200).json({ ok: true, url: blob.url });
+    // The store is private, so blobs are served through /api/image instead of
+    // their direct (auth-required) URLs.
+    await put(name, buf, { access: "private", contentType: type });
+    return res.status(200).json({ ok: true, url: "/api/image?path=" + encodeURIComponent(name) });
   } catch (err) {
     return res.status(500).json({ error: String((err && err.message) || err) });
   }

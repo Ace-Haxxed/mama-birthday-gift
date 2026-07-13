@@ -13,7 +13,12 @@ module.exports = async (req, res) => {
       const { blobs } = await list({ prefix: PREFIX });
       const photos = blobs
         .sort((a, b) => new Date(a.uploadedAt) - new Date(b.uploadedAt))
-        .map((b) => ({ url: b.url, uploadedAt: b.uploadedAt }));
+        .map((b) => ({
+          // Private store: b.url needs auth, so serve through the image proxy.
+          url: "/api/image?path=" + encodeURIComponent(b.pathname),
+          pathname: b.pathname,
+          uploadedAt: b.uploadedAt,
+        }));
       res.setHeader("Cache-Control", "no-store");
       return res.status(200).json({ photos });
     } catch (err) {
@@ -24,10 +29,11 @@ module.exports = async (req, res) => {
 
   if (req.method === "DELETE") {
     if (!authorized(req)) return res.status(401).json({ error: "unauthorized" });
-    const url = req.query && req.query.url;
-    if (!url) return res.status(400).json({ error: "missing url" });
+    // Accepts a blob pathname (preferred) or a full blob URL — del() takes either.
+    const target = req.query && (req.query.path || req.query.url);
+    if (!target) return res.status(400).json({ error: "missing path" });
     try {
-      await del(url);
+      await del(target);
       return res.status(200).json({ ok: true });
     } catch (err) {
       return res.status(500).json({ error: String((err && err.message) || err) });
