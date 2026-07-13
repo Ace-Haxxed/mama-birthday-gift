@@ -62,39 +62,65 @@ function downscale(file, maxDim = 1600, quality = 0.82) {
   });
 }
 
+function uploadedThumb(p) {
+  const fig = document.createElement("figure");
+  fig.className = "thumb";
+  const img = document.createElement("img");
+  img.src = p.url; img.loading = "lazy"; img.alt = "";
+  const btn = document.createElement("button");
+  btn.className = "del"; btn.type = "button"; btn.textContent = "Delete";
+  btn.onclick = async () => {
+    if (!confirm("Delete this photo for everyone?")) return;
+    btn.disabled = true;
+    const key = p.pathname
+      ? "path=" + encodeURIComponent(p.pathname)
+      : "url=" + encodeURIComponent(p.url);
+    const dr = await api("/api/photos?" + key, { method: "DELETE" });
+    if (dr.ok) refresh();
+    else { alert("Delete failed: " + (await apiError(dr))); btn.disabled = false; }
+  };
+  fig.append(img, btn);
+  return fig;
+}
+
+function builtInThumb(name) {
+  const fig = document.createElement("figure");
+  fig.className = "thumb";
+  const img = document.createElement("img");
+  img.src = "/" + encodeURIComponent(name); img.loading = "lazy"; img.alt = "";
+  const tag = document.createElement("span");
+  tag.className = "tag"; tag.textContent = "built-in";
+  tag.title = "Shipped with the site itself — can only be removed by editing the code.";
+  fig.append(img, tag);
+  return fig;
+}
+
 async function refresh() {
   const grid = $("#photos");
   grid.innerHTML = '<p class="muted">Loading…</p>';
+
+  let uploaded = [];
+  let note = "";
   try {
     const r = await fetch("/api/photos", { cache: "no-store" });
-    if (!r.ok) { grid.innerHTML = ""; grid.appendChild(mutedText(`Could not load photos: ${await apiError(r)}`)); return; }
-    const { photos = [], error } = await r.json();
-    if (error) { grid.innerHTML = ""; grid.appendChild(mutedText(`Storage error: ${error}`)); return; }
-    if (!photos.length) { grid.innerHTML = '<p class="muted">No uploaded photos yet.</p>'; return; }
-    grid.innerHTML = "";
-    photos.slice().reverse().forEach((p) => {
-      const fig = document.createElement("figure");
-      fig.className = "thumb";
-      const img = document.createElement("img");
-      img.src = p.url; img.loading = "lazy"; img.alt = "";
-      const btn = document.createElement("button");
-      btn.className = "del"; btn.type = "button"; btn.textContent = "Delete";
-      btn.onclick = async () => {
-        if (!confirm("Delete this photo for everyone?")) return;
-        btn.disabled = true;
-        const key = p.pathname
-          ? "path=" + encodeURIComponent(p.pathname)
-          : "url=" + encodeURIComponent(p.url);
-        const dr = await api("/api/photos?" + key, { method: "DELETE" });
-        if (dr.ok) refresh();
-        else { alert("Delete failed: " + (await apiError(dr))); btn.disabled = false; }
-      };
-      fig.append(img, btn);
-      grid.appendChild(fig);
-    });
+    if (!r.ok) note = `Could not load uploaded photos: ${await apiError(r)}`;
+    else {
+      const { photos = [], error } = await r.json();
+      if (error) note = `Storage error: ${error}`;
+      else uploaded = photos;
+    }
   } catch {
-    grid.innerHTML = '<p class="muted">Could not load photos (is the backend set up?).</p>';
+    note = "Could not load uploaded photos (is the backend set up?).";
   }
+
+  grid.innerHTML = "";
+  if (note) grid.appendChild(mutedText(note));
+  else if (!uploaded.length) grid.appendChild(mutedText("No uploaded photos yet — the ones below are built into the site."));
+  uploaded.slice().reverse().forEach((p) => grid.appendChild(uploadedThumb(p)));
+
+  const builtIn = (typeof PHOTOS !== "undefined" ? PHOTOS : [])
+    .concat(typeof BONUS_PHOTOS !== "undefined" ? BONUS_PHOTOS : []);
+  builtIn.forEach((name) => grid.appendChild(builtInThumb(name)));
 }
 
 function mutedText(text) {
