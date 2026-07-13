@@ -12,6 +12,27 @@ function api(path, opts = {}) {
   return fetch(path, Object.assign({}, opts, { headers }));
 }
 
+async function verify(pw) {
+  try {
+    const r = await fetch("/api/auth", { method: "POST", headers: { "x-admin-password": pw } });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
+function showContent() {
+  $("#gate").hidden = true;
+  $("#content").hidden = false;
+  refresh();
+}
+
+function showGate(message) {
+  $("#content").hidden = true;
+  $("#gate").hidden = false;
+  $("#gateError").textContent = message || "";
+}
+
 /* Resize/compress an image file to keep uploads small and fast. */
 function downscale(file, maxDim = 1600, quality = 0.82) {
   return new Promise((resolve, reject) => {
@@ -84,16 +105,30 @@ async function handleFiles(files) {
   refresh();
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
   const pwInput = $("#pw");
-  pwInput.value = getPw();
-  $("#unlock").onclick = () => { setPw(pwInput.value.trim()); $("#status").textContent = "Password saved for this session."; };
-  pwInput.addEventListener("keydown", (e) => { if (e.key === "Enter") $("#unlock").click(); });
+  const unlockBtn = $("#unlock");
+
+  const tryUnlock = async () => {
+    const pw = pwInput.value.trim();
+    if (!pw) { $("#gateError").textContent = "Enter the password."; return; }
+    unlockBtn.disabled = true;
+    unlockBtn.textContent = "Checking…";
+    const ok = await verify(pw);
+    unlockBtn.disabled = false;
+    unlockBtn.textContent = "Unlock";
+    if (ok) { setPw(pw); showContent(); }
+    else { sessionStorage.removeItem(PW_KEY); $("#gateError").textContent = "Wrong password."; }
+  };
+
+  unlockBtn.onclick = tryUnlock;
+  pwInput.addEventListener("keydown", (e) => { if (e.key === "Enter") tryUnlock(); });
 
   const file = $("#file");
   $("#pick").onclick = () => file.click();
-  file.onchange = () => handleFiles([...file.files]);
+  file.onchange = () => { handleFiles([...file.files]); file.value = ""; };
   $("#reload").onclick = refresh;
+  $("#lock").onclick = () => { sessionStorage.removeItem(PW_KEY); pwInput.value = ""; showGate(""); };
 
   const drop = $("#drop");
   drop.addEventListener("click", (e) => { if (e.target === drop) file.click(); });
@@ -101,5 +136,13 @@ document.addEventListener("DOMContentLoaded", () => {
   ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove("over"); }));
   drop.addEventListener("drop", (e) => handleFiles([...e.dataTransfer.files]));
 
-  refresh();
+  // Already unlocked this session? Re-verify silently instead of trusting storage.
+  const stored = getPw();
+  if (stored) {
+    pwInput.value = stored;
+    if (await verify(stored)) showContent();
+    else { sessionStorage.removeItem(PW_KEY); showGate(""); }
+  } else {
+    showGate("");
+  }
 });
