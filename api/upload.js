@@ -17,10 +17,6 @@ module.exports = async (req, res) => {
     return res.status(401).json({ error: "wrong password" });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
-    return res.status(500).json({ error: "no Blob store connected — Vercel → Storage → create a Blob store and connect it to this project, then redeploy" });
-  }
-
   let body = req.body;
   if (!body || typeof body === "string") body = await readJson(req);
   if (!body || !body.dataBase64) return res.status(400).json({ error: "missing image" });
