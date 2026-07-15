@@ -17,8 +17,16 @@ const JUMP_IMAGES = {
   weird: "Jumpscare number 2.jpeg",
 };
 
-const BIRTH_DATE = new Date(1985, 5, 25); // June 25, 1985 (months are 0-based)
-const DISPLAYED_AGE = 40; // her age — shown in the Memorial counter and "Years Loved"
+const BIRTH_DATE = new Date(1985, 6, 25); // July 25, 1985 (months are 0-based)
+// Completed years since BIRTH_DATE — shown in the Memorial counter and "Years Loved"
+function ageInYears(now = new Date()) {
+  let age = now.getFullYear() - BIRTH_DATE.getFullYear();
+  const hadBirthdayThisYear =
+    now.getMonth() > BIRTH_DATE.getMonth() ||
+    (now.getMonth() === BIRTH_DATE.getMonth() && now.getDate() >= BIRTH_DATE.getDate());
+  if (!hadBirthdayThisYear) age -= 1;
+  return age;
+}
 
 const REASONS = [
   "Your Kindness",
@@ -478,11 +486,11 @@ function buildReasons() {
 }
 
 /* ─────────────────────────────────────────────
-   10. Footer greeting — "Happy Birthday Mom" on June 25 only
+   10. Footer greeting — "Happy Birthday Mom" on July 25 only
    ───────────────────────────────────────────── */
 function initFooterGreeting() {
   const now = new Date();
-  const isBirthday = now.getMonth() === 5 && now.getDate() === 25; // June 25
+  const isBirthday = now.getMonth() === 6 && now.getDate() === 25; // July 25
 
   // Footer
   const greeting = isBirthday ? "Happy Birthday Mom" : "For my Mom";
@@ -491,13 +499,13 @@ function initFooterGreeting() {
 
   // Hero — only celebrates "Happy Birthday" on the actual day
   if (isBirthday) {
-    $("#heroEyebrow").textContent = "June 25 · A Day Worth Celebrating";
+    $("#heroEyebrow").textContent = "July 25 · A Day Worth Celebrating";
     $("#heroGreeting").textContent = "Happy Birthday";
   }
 }
 
 /* ─────────────────────────────────────────────
-   11. Memorial — live count-up since June 25, 1985
+   11. Memorial — live count-up since July 25, 1985
    ───────────────────────────────────────────── */
 function initCountUp() {
   const years = $("#cuYears"), days = $("#cuDays"), hours = $("#cuHours"),
@@ -514,7 +522,7 @@ function initCountUp() {
     const now = new Date();
     const anni = lastAnniversary(now);
     const rem = now - anni;
-    years.textContent = DISPLAYED_AGE;
+    years.textContent = ageInYears(now);
     days.textContent = Math.floor(rem / 86400000);
     hours.textContent = String(Math.floor(rem / 3600000) % 24).padStart(2, "0");
     mins.textContent = String(Math.floor(rem / 60000) % 60).padStart(2, "0");
@@ -532,7 +540,7 @@ function initStats() {
   const daysLived = Math.floor((now - BIRTH_DATE) / 86400000);
 
   const targets = {
-    years: DISPLAYED_AGE,
+    years: ageInYears(now),
     days: daysLived,
     memories: Infinity, // counts up, then resolves to ∞
   };
